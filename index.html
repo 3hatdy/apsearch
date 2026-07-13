@@ -286,24 +286,12 @@
       display: none;
     }
 
-    .ranking-update-gauge {
-      width: 72px;
-      height: 2px;
-      margin: 10px auto 0;
-      overflow: hidden;
-      border-radius: 999px;
-      background: #e6ebf0;
-    }
-
-    .ranking-update-gauge span {
-      display: block;
-      width: 100%;
-      height: 100%;
-      border-radius: inherit;
-      background: #c5ced8;
-      transform: scaleX(1);
-      transform-origin: left center;
-      transition: transform 0.9s linear;
+    .ranking-update-time {
+      margin: 8px 0 0;
+      color: #9aa4b1;
+      font-size: 12px;
+      font-weight: 540;
+      letter-spacing: -0.015em;
     }
 
     .ranking-list {
@@ -400,6 +388,12 @@
       color: #b0b8c1;
     }
 
+    .rank-trend.new {
+      color: #3182f6;
+      font-size: 12px;
+      font-weight: 720;
+    }
+
     .ranking-item {
       overflow: hidden;
     }
@@ -433,8 +427,8 @@
     }
 
     .mini-logo.gmarket {
-      background: #fff3e8;
-      color: #f15a24;
+      background: #e9f8ee;
+      color: #168c45;
     }
 
     .mini-logo.ohouse {
@@ -1031,8 +1025,8 @@
     }
 
     .partner-button.gmarket .partner-logo {
-      background: #fff3e8;
-      color: #f15a24;
+      background: #e9f8ee;
+      color: #168c45;
     }
 
     .partner-button.ohouse .partner-logo {
@@ -1446,9 +1440,7 @@
             <div class="ranking-head">
               <h2>오늘의 인기 소재</h2>
               <p>블로그 글감으로 많이 찾고 있어요</p>
-              <div class="ranking-update-gauge" aria-label="다음 순위 업데이트까지 남은 시간">
-                <span id="rankingGaugeBar"></span>
-              </div>
+              <p id="rankingUpdateTime" class="ranking-update-time" aria-live="polite">다음 업데이트까지 10:00</p>
             </div>
 
             <ol id="rankingList" class="ranking-list"></ol>
@@ -1960,7 +1952,9 @@
       const productGroup = data.productGroup || "";
       const { productName, period, situation } = getTitleContext(keyword);
       const periodPhrase = period ? `${period} 사용` : "사용";
-      const situationPhrase = situation ? `${situation}에서 써본` : "일상에서 써본";
+      const isFootwear = /신발|샌들|스니커즈|부츠|슬리퍼|구두|로퍼|힐/.test(`${productName} ${productGroup}`);
+      const experienceVerb = category === "패션" ? (isFootwear ? "신어본" : "입어본") : "써본";
+      const situationPhrase = situation ? `${situation}에서 ${experienceVerb}` : `일상에서 ${experienceVerb}`;
       const travelIdea = getTravelTitleIdea(productName, category, productGroup);
       const actualPatternNote = "브랜드·모델·사용 기간처럼 실제 경험 정보가 있으면 제목에 넣어주세요.";
 
@@ -2039,15 +2033,122 @@
         ]
       };
 
-      const ideas = (ideasByCategory[category] || ideasByCategory["생활·주방"]).map((idea) => ({ ...idea }));
+      const productGroupIdeas = getProductGroupTitleIdeas({
+        productName,
+        category,
+        productGroup,
+        periodPhrase,
+        situationPhrase,
+        actualPatternNote
+      });
+      const ideas = (productGroupIdeas || ideasByCategory[category] || ideasByCategory["생활·주방"])
+        .map((idea) => ({ ...idea }));
       if (travelIdea) ideas[5] = travelIdea;
       return ideas.slice(0, 6);
+    }
+
+    function getProductGroupTitleIdeas(context) {
+      const { productName, category, productGroup, periodPhrase, situationPhrase, actualPatternNote } = context;
+      const subject = `${productName} ${productGroup}`;
+
+      if (category === "가전·디지털" && /키보드|마우스|노트북|모니터|태블릿|거치대|독|허브/.test(subject)) {
+        return [
+          { type: "후기형", title: `${productName} ${periodPhrase} 후기, 작업하며 느낀 장점과 불편한 점`, note: actualPatternNote },
+          { type: "작업형", title: `재택근무에 쓴 ${productName}, 작업 흐름이 달라진 이유`, note: "문서 작업·회의·디자인처럼 실제 업무를 함께 적어주세요." },
+          { type: "구매판단형", title: `${productName} 고를 때 본 연결·호환·공간 기준`, note: "스펙보다 내 기기와 책상 환경에 맞는 기준을 보여줘요." },
+          { type: "비교형", title: `기존 제품 대신 ${productName} 바꾼 이유, 달라진 점`, note: "실제로 비교한 제품이 있을 때만 사용해요." },
+          { type: "설정형", title: `${productName} 처음 연결하고 설정할 때 확인한 점`, note: "페어링·단축키·높이 조절처럼 막히기 쉬운 과정을 담아요." },
+          { type: "상황형", title: `${situationPhrase} ${productName}, 오래 써도 괜찮았을까`, note: "사용 시간과 자세를 적으면 후기의 신뢰도가 높아져요." }
+        ];
+      }
+
+      if (category === "가전·디지털" && /이어폰|헤드폰|스피커|사운드바|마이크/.test(subject)) {
+        return [
+          { type: "후기형", title: `${productName} ${periodPhrase} 후기, 음질·착용감·연결성 정리`, note: actualPatternNote },
+          { type: "상황형", title: `${situationPhrase} ${productName}, 통화와 음악 감상 후기`, note: "통화·운동·대중교통처럼 실제 듣는 환경을 적어주세요." },
+          { type: "구매판단형", title: `${productName} 고를 때 본 배터리·노이즈캔슬링·착용감`, note: "가장 중요했던 한두 가지 기준에 집중해요." },
+          { type: "비교형", title: `기존 이어폰 대신 ${productName} 선택한 이유`, note: "비교 대상과 달라진 점이 있을 때 사용해요." },
+          { type: "문제해결형", title: `${productName} 연결이 끊길 때 확인한 설정과 해결 방법`, note: "직접 겪은 문제와 해결 과정을 담아주세요." },
+          { type: "선택형", title: `${productName} 누구에게 잘 맞을까? 사용 환경별 선택 기준`, note: "잘 맞는 사람과 아쉬울 사람을 나눠 설명해요." }
+        ];
+      }
+
+      if (category === "가구·인테리어" && /소파|의자|테이블|식탁/.test(subject)) {
+        return [
+          { type: "후기형", title: `${productName} 들인 뒤 달라진 점, 착석감·동선 후기`, note: actualPatternNote },
+          { type: "공간형", title: `${productName} 놓아본 거실, 크기와 배치가 잘 맞았을까`, note: "공간 평수·배치 전후·실측 정보를 함께 적어주세요." },
+          { type: "구매판단형", title: `${productName} 고를 때 직접 확인한 높이·깊이·소재 기준`, note: "앉는 습관과 가족 구성에 맞춘 기준을 보여줘요." },
+          { type: "생활형", title: `${situationPhrase} ${productName}, 매일 쓰며 느낀 편한 점`, note: "식사·휴식·손님맞이처럼 실제 사용 장면을 넣어요." },
+          { type: "관리형", title: `${productName} 오래 쓰려면? 오염과 관리하며 알게 된 점`, note: "청소·커버·스크래치처럼 현실적인 관리 정보를 담아요." },
+          { type: "선택형", title: `비슷한 제품 대신 ${productName} 고른 이유와 아쉬운 점`, note: "비교는 실제 구매 후보가 있었을 때만 사용해요." }
+        ];
+      }
+
+      if (category === "가구·인테리어" && /수납|선반|책장|행거|서랍|정리/.test(subject)) {
+        return [
+          { type: "후기형", title: `${productName} ${periodPhrase} 후기, 수납력과 조립 난이도 정리`, note: actualPatternNote },
+          { type: "정리형", title: `${productName}으로 바꾼 집 정리, 물건이 얼마나 들어갈까`, note: "정리 전후와 실제 수납한 물건을 함께 보여줘요." },
+          { type: "구매판단형", title: `${productName} 사기 전 확인한 폭·높이·하중 기준`, note: "실측과 설치 공간을 제목·본문에 연결해요." },
+          { type: "조립형", title: `${productName} 조립하며 알게 된 준비물과 주의할 점`, note: "혼자 조립했는지, 걸린 시간을 적으면 유용해요." },
+          { type: "상황형", title: `${situationPhrase} ${productName}, 정리 습관이 달라진 이유`, note: "자취방·아이방·팬트리처럼 공간 목적을 넣어주세요." },
+          { type: "선택형", title: `${productName} 재구매할까? 수납력과 아쉬운 점 후기`, note: "무엇을 담을 사람에게 맞는지까지 알려줘요." }
+        ];
+      }
+
+      if (category === "생활·주방" && /냄비|프라이팬|주걱|도마|칼|식기|접시|그릇|텀블러|밀폐용기/.test(subject)) {
+        return [
+          { type: "후기형", title: `${productName} 써보니 편했던 점, 세척·보관·내구성 후기`, note: actualPatternNote },
+          { type: "요리형", title: `${productName}로 요리해보니 달라진 점, 실제 활용 후기`, note: "어떤 요리에 썼는지와 전후 차이를 담아주세요." },
+          { type: "구매판단형", title: `${productName} 고를 때 본 크기·무게·관리 기준`, note: "주방 수납 공간과 식기세척기 사용 여부를 함께 적어요." },
+          { type: "비교형", title: `기존 주방용품 대신 ${productName} 바꾼 이유`, note: "깨짐·무게·세척처럼 바꾼 계기를 구체화해요." },
+          { type: "사용법형", title: `${productName} 오래 쓰는 세척과 보관 방법`, note: "직접 지킨 관리법만 간단하게 정리해요." },
+          { type: "상황형", title: `${situationPhrase} ${productName}, 매일 손이 갔던 이유`, note: "1인 가구·집밥·육아처럼 생활 장면을 넣어요." }
+        ];
+      }
+
+      if (category === "식품" && /만두|밀키트|국|탕|찌개|도시락|즉석밥|냉동|간편식|떡볶이|피자|파스타/.test(subject)) {
+        return [
+          { type: "후기형", title: `${productName} 먹어본 후기, 맛·양·조리 편의성 정리`, note: actualPatternNote },
+          { type: "한끼형", title: `${productName} 한 끼로 먹어보니, 양과 포만감은 어땠을까`, note: "몇 명이 먹었는지와 함께 곁들인 메뉴를 적어주세요." },
+          { type: "조리형", title: `${productName} 더 맛있게 먹는 조리법, 실패하지 않은 방법`, note: "해동·물 양·조리 시간처럼 직접 확인한 정보를 담아요." },
+          { type: "구매판단형", title: `${productName} 구매 전 확인한 보관·유통기한·가격 기준`, note: "냉동실 공간과 1회분 양처럼 현실적인 기준을 보여줘요." },
+          { type: "재구매형", title: `${productName} 재구매할까? 맛과 편의성 기준으로 정리`, note: "좋았던 점과 아쉬운 점을 함께 적어 신뢰를 만들어요." },
+          { type: "상황형", title: `${situationPhrase} ${productName}, 바쁜 날 한 끼로 괜찮았을까`, note: "혼밥·야근·아이 식사처럼 실제 상황을 적어주세요." }
+        ];
+      }
+
+      if (category === "식품") {
+        return [
+          { type: "후기형", title: `${productName} 써본 후기, 맛의 차이와 활용하기 좋은 요리`, note: actualPatternNote },
+          { type: "선택형", title: `${productName} 고를 때 본 원산지·용량·보관 기준`, note: "평소 먹는 양과 사용 빈도를 기준으로 설명해요." },
+          { type: "활용형", title: `${productName} 한 통 다 쓰며 찾은 활용법`, note: "반복해서 만든 메뉴나 조합을 적어주세요." },
+          { type: "비교형", title: `다른 제품 대신 ${productName} 선택한 이유`, note: "맛·향·가격처럼 실제 비교한 기준을 담아요." },
+          { type: "구매판단형", title: `${productName} 재구매 기준, 가격과 사용량으로 따져본 후기`, note: "대용량과 소용량 중 무엇이 맞았는지도 알려줘요." },
+          { type: "상황형", title: `${situationPhrase} ${productName}, 식탁에서 가장 잘 어울린 조합`, note: "누구와 먹었는지와 메뉴 조합을 구체화해요." }
+        ];
+      }
+
+      if (category === "패션" && /신발|샌들|스니커즈|부츠|가방|백팩|모자|선글라스/.test(subject)) {
+        return [
+          { type: "후기형", title: `${productName} ${periodPhrase} 후기, 착용감·수납력·아쉬운 점`, note: actualPatternNote },
+          { type: "스타일형", title: `${productName} 코디, 가장 자주 손이 간 조합 3가지`, note: "실제 옷장에 있는 아이템과 매치해 보여줘요." },
+          { type: "구매판단형", title: `${productName} 고를 때 확인한 사이즈·무게·활용도`, note: "발볼·수납 물건·착용 시간을 기준으로 정리해요." },
+          { type: "상황형", title: `${situationPhrase} ${productName}, 오래 착용해도 괜찮았을까`, note: "이동량과 날씨를 함께 적으면 더 유용해요." },
+          { type: "비교형", title: `비슷한 제품 대신 ${productName} 고른 이유`, note: "실제 비교한 후보가 있을 때만 사용해요." },
+          { type: "선택형", title: `${productName} 누구에게 잘 맞을까? 생활 패턴별 후기`, note: "추천 대상과 아쉬울 대상을 구분해요." }
+        ];
+      }
+
+      return null;
     }
 
     function getTravelTitleIdea(productName, category, productGroup) {
       const blockedGroup = /거실|침실|가구|수납가구|조명|인테리어|계절가전|생활가전|주방가전/;
       if (blockedGroup.test(productGroup)) return null;
-      if (category === "패션" && (/신발|아우터|원피스|수영복/.test(productGroup) || /가방|백팩|샌들|스니커즈|모자|선글라스|원피스|재킷|자켓|바람막이/.test(productName))) return { type: "여행 연결형", title: `여행지에서 입어본 ${productName}, 사진과 활동성 후기`, note: "여행지·날씨·이동량처럼 실제 조건을 넣어주세요." };
+      if (category === "패션" && (/신발|아우터|원피스|수영복/.test(productGroup) || /가방|백팩|샌들|스니커즈|부츠|슬리퍼|구두|로퍼|힐|모자|선글라스|원피스|재킷|자켓|바람막이/.test(productName))) {
+        const experienceVerb = /신발|샌들|스니커즈|부츠|슬리퍼|구두|로퍼|힐/.test(`${productName} ${productGroup}`) ? "신어본" : "입어본";
+        return { type: "여행 연결형", title: `여행지에서 ${experienceVerb} ${productName}, 사진과 활동성 후기`, note: "여행지·날씨·이동량처럼 실제 조건을 넣어주세요." };
+      }
       if (category === "뷰티" && /선크림|선스틱|미스트|쿠션|립|파우치|샴푸|바디워시/.test(productName)) return { type: "여행 연결형", title: `여행 가방에 챙긴 ${productName}, 휴대성과 사용 후기`, note: "기내·야외·물놀이처럼 실제 상황에서만 사용해요." };
       if (category === "생활·주방" && /텀블러|보온병|물병|우산|파우치|목베개|휴대용|보냉백|아이스박스/.test(productName)) return { type: "여행 연결형", title: `여행에 챙긴 ${productName}, 휴대성과 관리 후기`, note: "무게·부피·누수·세척 기준을 담아주세요." };
       if (category === "유아·반려" && /유모차|아기띠|카시트|기저귀가방|이동장|휴대용/.test(productName)) return { type: "여행 연결형", title: `이동하며 써본 ${productName}, 짐 부피와 사용성 후기`, note: "이동 수단과 현장 사용 난이도를 구체화해요." };
@@ -2106,15 +2207,23 @@
     }
 
     function getRankingRowHtml(item, index) {
-      const trendText = item.isLive ? `${item.count}회` : "―";
+      const trendText = item.isLive ? getTrendText(item.trend, item.change) : "―";
+      const trendClass = item.isLive ? (item.trend || "same") : "same";
 
       return `
         <div class="ranking-row-inner">
           <span class="rank-number">${index + 1}</span>
           <span class="rank-keyword">${item.keyword}</span>
-          <span class="rank-trend same">${trendText}</span>
+          <span class="rank-trend ${trendClass}">${trendText}</span>
         </div>
       `;
+    }
+
+    function getTrendText(trend, change) {
+      if (trend === "new") return "NEW";
+      if (trend === "up") return `▲ ${change}`;
+      if (trend === "down") return `▼ ${change}`;
+      return "―";
     }
 
     function mergeRanking(liveRanking) {
@@ -2129,6 +2238,8 @@
         merged.push({
           keyword,
           count: Number(item.count) || 0,
+          trend: item.trend || "same",
+          change: Number(item.change) || 0,
           isLive: true
         });
       });
@@ -2170,9 +2281,12 @@
     }
 
     function updateRankingCountdown() {
-      const gaugeBar = document.getElementById("rankingGaugeBar");
+      const countdown = document.getElementById("rankingUpdateTime");
       const remaining = Math.max(0, nextRankingRefreshAt - Date.now());
-      gaugeBar.style.transform = `scaleX(${remaining / RANKING_REFRESH_MS})`;
+      const totalSeconds = Math.ceil(remaining / 1000);
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const seconds = String(totalSeconds % 60).padStart(2, "0");
+      countdown.textContent = `다음 업데이트까지 ${minutes}:${seconds}`;
 
       if (remaining === 0) {
         nextRankingRefreshAt = Date.now() + RANKING_REFRESH_MS;
