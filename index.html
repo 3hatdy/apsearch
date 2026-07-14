@@ -1813,6 +1813,7 @@
 ];
 
     const RANKING_REFRESH_MS = 10 * 60 * 1000;
+    const RANKING_SNAPSHOT_KEY = "affiliate-ranking-top10-v1";
     const FALLBACK_RANKING = rankingSets[0].map((item) => ({
       keyword: item.keyword,
       trend: "same",
@@ -1893,7 +1894,7 @@
       }
 
       // 등록된 검색어(띄어쓰기 제외)만 허용합니다.
-      // 단어 끝 일부만 같다는 이유로 무관한 상품이 검색되는 것을 막습니다.
+      // 일부 글자가 같다는 이유로 무관한 상품이 검색되는 것을 막습니다.
       return null;
     }
 
@@ -2378,7 +2379,10 @@
       const seenKeywords = new Set();
       const merged = [];
 
-      liveRanking.forEach((item) => {
+      const validLiveRanking = liveRanking.filter((item) => findMatchedData(String(item.keyword || "").trim()));
+      const rankedLiveItems = applyRankingMovement(validLiveRanking);
+
+      rankedLiveItems.forEach((item) => {
         const keyword = String(item.keyword || "").trim();
         if (!keyword || seenKeywords.has(keyword)) return;
 
@@ -2399,6 +2403,51 @@
       });
 
       return merged.slice(0, 10);
+    }
+
+    function applyRankingMovement(liveRanking) {
+      let previousRanking = [];
+
+      try {
+        previousRanking = JSON.parse(localStorage.getItem(RANKING_SNAPSHOT_KEY) || "[]");
+      } catch (_) {
+        previousRanking = [];
+      }
+
+      const previousPositions = new Map(
+        previousRanking.map((keyword, index) => [keyword, index + 1])
+      );
+      const hasPreviousSnapshot = previousRanking.length > 0;
+
+      const rankedItems = liveRanking.slice(0, 10).map((item, index) => {
+        const keyword = String(item.keyword || "").trim();
+        const currentRank = index + 1;
+        const previousRank = previousPositions.get(keyword);
+
+        if (!hasPreviousSnapshot) {
+          return { ...item, trend: "same", change: 0 };
+        }
+
+        if (!previousRank) {
+          return { ...item, trend: "new", change: 0 };
+        }
+
+        const change = previousRank - currentRank;
+        if (change > 0) return { ...item, trend: "up", change };
+        if (change < 0) return { ...item, trend: "down", change: Math.abs(change) };
+        return { ...item, trend: "same", change: 0 };
+      });
+
+      try {
+        localStorage.setItem(
+          RANKING_SNAPSHOT_KEY,
+          JSON.stringify(rankedItems.map((item) => String(item.keyword || "").trim()))
+        );
+      } catch (_) {
+        // 저장을 사용할 수 없는 환경에서도 현재 순위는 정상적으로 표시합니다.
+      }
+
+      return rankedItems;
     }
 
     function requestRankingFromSheet() {
