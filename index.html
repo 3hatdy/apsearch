@@ -260,10 +260,10 @@
       width: 100%;
       max-width: 900px;
       margin: 52px auto 0;
-      padding: 30px 36px;
-      border: 1px solid #e5f0ff;
-      border-radius: 20px;
-      background: linear-gradient(135deg, #f9fcff 0%, #eef7ff 100%);
+      padding: 30px 10px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
     }
 
     .flow-step {
@@ -286,7 +286,7 @@
 
     .flow-number {
       position: absolute;
-      top: -13px;
+      top: -30px;
       left: 50%;
       display: inline-flex;
       align-items: center;
@@ -978,7 +978,7 @@
         grid-template-columns: 1fr;
         gap: 18px;
         margin-top: 40px;
-        padding: 28px 22px;
+        padding: 28px 8px;
       }
 
       .flow-arrow {
@@ -1645,7 +1645,7 @@
   </main>
 
   <script>
-    const rollingKeywords = [
+    const fallbackRollingKeywords = [
       "소파",
       "샌들",
       "떡볶이",
@@ -1657,6 +1657,7 @@
       "노트북 거치대",
       "블루투스 이어폰"
 ];
+    let rollingKeywords = [...fallbackRollingKeywords];
 
     const partnerLogoMap = {
       "G마켓": { text: "G", className: "gmarket" },
@@ -1830,6 +1831,7 @@
     const RANKING_REFRESH_MS = 3 * 60 * 1000;
     const RANKING_CACHE_KEY = "blog-material-ranking-v14";
     const RANKING_PREVIOUS_KEY = "blog-material-ranking-previous-v14";
+    const RANKING_SNAPSHOT_KEY = "blog-material-ranking-snapshot-v14";
     const FALLBACK_RANKING = rankingSets[0].map((item) => ({
       keyword: item.keyword,
       trend: "same",
@@ -1868,7 +1870,11 @@
       });
     }
 
+    let searchTransitionActive = false;
+    let searchTransitionTimer = null;
+
     function handleSearch(searchValue) {
+      if (searchTransitionActive) return;
       const input = document.getElementById("searchInput");
       const keyword = (searchValue || input.value).trim();
 
@@ -1886,14 +1892,17 @@
 
       currentKeyword = keyword;
       currentData = matchedData;
+      searchTransitionActive = true;
       logSearch(keyword);
 
       setRandomLoadingText();
       showPage("loadingPage");
 
-      setTimeout(() => {
+      searchTransitionTimer = setTimeout(() => {
         renderResult();
         showPage("resultPage");
+        searchTransitionActive = false;
+        searchTransitionTimer = null;
       }, 2000);
     }
 
@@ -1910,24 +1919,7 @@
         return exactItem;
       }
 
-      const suffixRule = suffixRules.find((rule) => {
-        const term = rule.normalizedTerm;
-        return normalizedKeyword.length > term.length && normalizedKeyword.endsWith(term);
-      });
-
-      if (!suffixRule) {
-        return null;
-      }
-
-      return {
-        keywords: [keyword],
-        keyword,
-        primaryCategory: suffixRule.primaryCategory,
-        productGroup: suffixRule.productGroup,
-        basis: `상품군 기반 매칭: ${suffixRule.term}`,
-        partners: suffixRule.partners,
-        actualCount: 0
-      };
+      return null;
     }
 
     function buildSearchIndex(items) {
@@ -1949,6 +1941,20 @@
     }
 
     const searchIndex = buildSearchIndex(mockData);
+
+    function shuffle(items) {
+      return [...items].sort(() => Math.random() - 0.5);
+    }
+
+    // 확장 키워드가 아닌 실제 메인 검색어만 첫 화면 예시로 사용합니다.
+    const primaryRollingKeywords = [...new Set(
+      mockData
+        .filter((item) => !String(item.basis || "").includes("확장"))
+        .map((item) => item.keyword)
+        .filter(Boolean)
+    )];
+    rollingKeywords = primaryRollingKeywords.length ? shuffle(primaryRollingKeywords) : rollingKeywords;
+    rollingIndex = Math.floor(Math.random() * rollingKeywords.length);
 
     function normalize(text) {
       return text.replace(/\s/g, "").toLowerCase();
@@ -2096,7 +2102,9 @@
       const { productName, period, situation } = getTitleContext(keyword);
       const periodPhrase = period ? `${period} 사용` : "사용";
       const isFootwear = /신발|샌들|스니커즈|부츠|슬리퍼|구두|로퍼|힐/.test(`${productName} ${productGroup}`);
-      const experienceVerb = category === "패션" ? (isFootwear ? "신어본" : "입어본") : "써본";
+      const experienceVerb = category === "식품"
+        ? "먹어본"
+        : (category === "패션" ? (isFootwear ? "신어본" : "입어본") : "써본");
       const situationPhrase = situation ? `${situation}에서 ${experienceVerb}` : `일상에서 ${experienceVerb}`;
       const travelIdea = getTravelTitleIdea(productName, category, productGroup);
       const actualPatternNote = "브랜드·모델·사용 기간처럼 실제 경험 정보가 있으면 제목에 넣어주세요.";
@@ -2106,7 +2114,7 @@
           { type: "후기형", title: `${productName} 먹어본 후기, 맛·양·조리 편의성 정리`, note: actualPatternNote },
           { type: "추천형", title: `${productName} 추천, 다시 고를 때 본 맛·용량·가격 기준`, note: "비슷한 상품과 차이가 났던 한두 가지 기준을 넣어주세요." },
           { type: "활용형", title: `${productName} 더 맛있게 먹는 방법, 조리 전 확인할 점`, note: "물 양·해동·추가 재료처럼 실제 도움이 되는 정보를 담아요." },
-          { type: "상황형", title: `${situationPhrase} ${productName}, 한 끼로 괜찮았을까`, note: "자취·혼밥·아이 간식처럼 실제 상황을 구체화해요." },
+          { type: "상황형", title: `${situationPhrase} ${productName}, 맛과 구성은 어땠을까`, note: "함께 먹은 메뉴나 조리 상황을 구체화해요." },
           { type: "선택형", title: `${productName} 고른 이유, 재구매 기준과 아쉬운 점`, note: "무조건 추천보다 맞는 사람과 아쉬운 점을 함께 적어요." },
           { type: "구매판단형", title: `${productName} 구매 전 확인할 보관·유통기한·가격 포인트`, note: "구매 직전 필요한 정보를 중심으로 정리해요." }
         ],
@@ -2249,20 +2257,42 @@
         ];
       }
 
-      if (category === "식품" && /만두|밀키트|국|탕|찌개|도시락|즉석밥|냉동|간편식|떡볶이|피자|파스타/.test(subject)) {
+      if (category === "식품" && /홍삼|유산균|비타민|오메가|프로바이오틱스|루테인|마그네슘|철분|콜라겐/.test(subject)) {
+        return [
+          { type: "후기형", title: `${productName} 꾸준히 챙겨 먹어본 후기, 맛과 섭취 편의성`, note: actualPatternNote },
+          { type: "선택형", title: `${productName} 고를 때 본 형태·용량·보관 기준`, note: "맛·제형·섭취 시간처럼 실제 선택 기준을 적어주세요." },
+          { type: "습관형", title: `${productName} 챙겨 먹기 편했던 방법과 루틴`, note: "실제로 챙긴 시간대와 보관 방식을 담아주세요." },
+          { type: "구매판단형", title: `${productName} 구매 전 확인한 1회분·가격·유통기한`, note: "건강 효능 대신 제품 정보와 개인 경험 중심으로 적어요." },
+          { type: "재구매형", title: `${productName} 재구매할까? 먹기 편했던 점과 아쉬운 점`, note: "과장된 효능 대신 맛과 섭취 편의성을 기준으로 정리해요." },
+          { type: "상황형", title: `${productName} 매일 챙겨 먹어보니, 계속 먹기 편했을까`, note: "내 생활 패턴에서 챙기기 쉬웠는지 적어주세요." }
+        ];
+      }
+
+      if (category === "식품" && /피자/.test(subject)) {
+        return [
+          { type: "후기형", title: `${productName} 먹어본 후기, 토핑과 맛의 조합 정리`, note: actualPatternNote },
+          { type: "비교형", title: `${productName} 고를 때 본 토핑·도우·가격 기준`, note: "실제로 비교한 메뉴가 있을 때 사용해요." },
+          { type: "조리형", title: `${productName} 더 맛있게 먹는 데우는 법과 시간`, note: "오븐·에어프라이어처럼 실제 조리 방법을 담아주세요." },
+          { type: "상황형", title: `${productName} 먹어보니, 토핑과 도우는 어땠을까`, note: "함께 먹은 메뉴와 맛의 인상을 구체화해요." },
+          { type: "재구매형", title: `${productName} 다시 주문할까? 맛과 양으로 정리한 후기`, note: "좋았던 점과 아쉬운 점을 함께 적어 신뢰를 만들어요." },
+          { type: "구매판단형", title: `${productName} 구매 전 확인할 보관·조리·가격 포인트`, note: "냉동 보관과 조리 환경을 기준으로 정리해요." }
+        ];
+      }
+
+      if (category === "식품" && /만두|밀키트|국|탕|찌개|도시락|즉석밥|냉동|간편식|떡볶이|파스타/.test(subject)) {
         return [
           { type: "후기형", title: `${productName} 먹어본 후기, 맛·양·조리 편의성 정리`, note: actualPatternNote },
           { type: "한끼형", title: `${productName} 한 끼로 먹어보니, 양과 포만감은 어땠을까`, note: "몇 명이 먹었는지와 함께 곁들인 메뉴를 적어주세요." },
           { type: "조리형", title: `${productName} 더 맛있게 먹는 조리법, 실패하지 않은 방법`, note: "해동·물 양·조리 시간처럼 직접 확인한 정보를 담아요." },
           { type: "구매판단형", title: `${productName} 구매 전 확인한 보관·유통기한·가격 기준`, note: "냉동실 공간과 1회분 양처럼 현실적인 기준을 보여줘요." },
           { type: "재구매형", title: `${productName} 재구매할까? 맛과 편의성 기준으로 정리`, note: "좋았던 점과 아쉬운 점을 함께 적어 신뢰를 만들어요." },
-          { type: "상황형", title: `${situationPhrase} ${productName}, 바쁜 날 한 끼로 괜찮았을까`, note: "혼밥·야근·아이 식사처럼 실제 상황을 적어주세요." }
+          { type: "상황형", title: `${situationPhrase} ${productName}, 맛과 조리 편의성은 어땠을까`, note: "혼밥·야근·아이 식사처럼 실제 상황을 적어주세요." }
         ];
       }
 
       if (category === "식품") {
         return [
-          { type: "후기형", title: `${productName} 써본 후기, 맛의 차이와 활용하기 좋은 요리`, note: actualPatternNote },
+          { type: "후기형", title: `${productName} 먹어본 후기, 맛의 차이와 활용하기 좋은 요리`, note: actualPatternNote },
           { type: "선택형", title: `${productName} 고를 때 본 원산지·용량·보관 기준`, note: "평소 먹는 양과 사용 빈도를 기준으로 설명해요." },
           { type: "활용형", title: `${productName} 먹어보며 찾은 활용법`, note: "반복해서 만든 메뉴나 조합을 적어주세요." },
           { type: "비교형", title: `다른 제품 대신 ${productName} 선택한 이유`, note: "맛·향·가격처럼 실제 비교한 기준을 담아요." },
@@ -2272,8 +2302,9 @@
       }
 
       if (category === "패션" && /신발|샌들|스니커즈|부츠|가방|백팩|모자|선글라스/.test(subject)) {
+        const fashionExperienceVerb = /신발|샌들|스니커즈|부츠|슬리퍼|구두|로퍼|힐/.test(subject) ? "신어본" : "써본";
         return [
-          { type: "후기형", title: `${productName} ${periodPhrase} 후기, 착용감·수납력·아쉬운 점`, note: actualPatternNote },
+          { type: "후기형", title: `${productName} ${fashionExperienceVerb} 후기, 착용감·수납력·아쉬운 점`, note: actualPatternNote },
           { type: "스타일형", title: `${productName} 코디, 가장 자주 손이 간 조합 3가지`, note: "실제 옷장에 있는 아이템과 매치해 보여줘요." },
           { type: "구매판단형", title: `${productName} 고를 때 확인한 사이즈·무게·활용도`, note: "발볼·수납 물건·착용 시간을 기준으로 정리해요." },
           { type: "상황형", title: `${situationPhrase} ${productName}, 오래 착용해도 괜찮았을까`, note: "이동량과 날씨를 함께 적으면 더 유용해요." },
@@ -2324,6 +2355,11 @@
     }
 
     function goHome() {
+      if (searchTransitionTimer) {
+        window.clearTimeout(searchTransitionTimer);
+        searchTransitionTimer = null;
+      }
+      searchTransitionActive = false;
       showPage("homePage");
       updateInputState();
       document.getElementById("searchInput").focus();
@@ -2447,12 +2483,28 @@
 
       window[callbackName] = (payload) => {
         const liveRanking = Array.isArray(payload?.ranking) ? payload.ranking : [];
+        const serverNextUpdateAt = new Date(payload?.nextUpdateAt || "").getTime();
+        if (Number.isFinite(serverNextUpdateAt) && serverNextUpdateAt > Date.now()) {
+          nextRankingRefreshAt = serverNextUpdateAt;
+        }
+
         if (liveRanking.length) {
-          const previousRanking = readRankingStorage(RANKING_CACHE_KEY);
-          displayedRanking = mergeRanking(liveRanking, previousRanking);
-          writeRankingStorage(RANKING_PREVIOUS_KEY, previousRanking);
-          writeRankingStorage(RANKING_CACHE_KEY, displayedRanking.map(({ keyword, count }) => ({ keyword, count })));
-          renderRanking();
+          const receivedSnapshot = String(payload?.updatedAt || "");
+          const storedSnapshot = localStorage.getItem(RANKING_SNAPSHOT_KEY) || "";
+
+          // 같은 3분 구간의 응답은 이미 화면에 표시한 등락을 덮어쓰지 않습니다.
+          // 그래서 새로고침해도 이전 업데이트 대비 등락이 유지됩니다.
+          if (!receivedSnapshot || receivedSnapshot !== storedSnapshot) {
+            const currentRanking = readRankingStorage(RANKING_CACHE_KEY);
+            displayedRanking = mergeRanking(liveRanking, currentRanking);
+            writeRankingStorage(RANKING_PREVIOUS_KEY, currentRanking);
+            writeRankingStorage(
+              RANKING_CACHE_KEY,
+              displayedRanking.map(({ keyword, count }) => ({ keyword, count }))
+            );
+            if (receivedSnapshot) localStorage.setItem(RANKING_SNAPSHOT_KEY, receivedSnapshot);
+            renderRanking();
+          }
         }
         cleanup();
       };
@@ -2559,15 +2611,12 @@
     document.getElementById("searchInput").addEventListener("input", updateInputState);
 
     bindTitleRefiner();
+    document.getElementById("rollingPlaceholder").textContent = rollingKeywords[rollingIndex];
     updateInputState();
     const cachedRanking = readRankingStorage(RANKING_CACHE_KEY);
+    const previousRanking = readRankingStorage(RANKING_PREVIOUS_KEY);
     if (cachedRanking.length) {
-      displayedRanking = cachedRanking.map((item) => ({
-        ...item,
-        trend: "same",
-        change: 0,
-        isLive: true
-      }));
+      displayedRanking = mergeRanking(cachedRanking, previousRanking);
     }
     renderRanking();
     requestRankingFromSheet();
