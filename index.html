@@ -253,6 +253,89 @@
       padding: 0 4px;
     }
 
+    .search-flow {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px minmax(0, 1fr);
+      align-items: center;
+      width: 100%;
+      max-width: 900px;
+      margin: 52px auto 0;
+      padding: 30px 36px;
+      border: 1px solid #e5f0ff;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #f9fcff 0%, #eef7ff 100%);
+    }
+
+    .flow-step {
+      min-width: 0;
+      text-align: center;
+    }
+
+    .flow-icon {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 76px;
+      height: 76px;
+      margin-bottom: 14px;
+      border-radius: 50%;
+      background: #e4f1ff;
+      color: #1677e8;
+    }
+
+    .flow-number {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #1677e8;
+      color: #ffffff;
+      font-size: 17px;
+      font-weight: 720;
+      transform: translateX(-50%);
+    }
+
+    .flow-icon svg {
+      width: 38px;
+      height: 38px;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .flow-step h2 {
+      margin: 0;
+      color: #1677e8;
+      font-size: 19px;
+      font-weight: 720;
+      letter-spacing: -0.045em;
+    }
+
+    .flow-step p {
+      margin: 7px 0 0;
+      color: #596575;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.035em;
+      line-height: 1.45;
+    }
+
+    .flow-arrow {
+      color: #75a6ff;
+      font-size: 42px;
+      font-weight: 350;
+      line-height: 1;
+      text-align: center;
+    }
+
     .ranking-head {
       display: flex;
       flex-direction: column;
@@ -891,6 +974,32 @@
         margin-top: 74px;
       }
 
+      .search-flow {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        margin-top: 40px;
+        padding: 28px 22px;
+      }
+
+      .flow-arrow {
+        display: none;
+      }
+
+      .flow-icon {
+        width: 68px;
+        height: 68px;
+        margin-bottom: 11px;
+      }
+
+      .flow-step h2 {
+        font-size: 18px;
+      }
+
+      .flow-step p {
+        margin-top: 5px;
+        font-size: 13px;
+      }
+
       .ranking-head {
         align-items: center;
         justify-content: center;
@@ -1436,6 +1545,35 @@
           </div>
 
           <p class="search-help-text">*모든 상품이 검색되지 않을 수 있어요.</p>
+
+          <section class="search-flow" aria-label="서비스 이용 방법">
+            <div class="flow-step">
+              <div class="flow-icon" aria-hidden="true">
+                <span class="flow-number">1</span>
+                <svg viewBox="0 0 48 48"><circle cx="21" cy="21" r="12"></circle><path d="m30 30 10 10"></path></svg>
+              </div>
+              <h2>상품 검색</h2>
+              <p>원하는 상품을 검색해요</p>
+            </div>
+            <div class="flow-arrow" aria-hidden="true">›</div>
+            <div class="flow-step">
+              <div class="flow-icon" aria-hidden="true">
+                <span class="flow-number">2</span>
+                <svg viewBox="0 0 48 48"><path d="m19 29-3 3a7 7 0 0 1-10-10l8-8a7 7 0 0 1 10 0"></path><path d="m29 19 3-3a7 7 0 0 1 10 10l-8 8a7 7 0 0 1-10 0"></path><path d="m17 31 14-14"></path></svg>
+              </div>
+              <h2>제휴링크 생성 가능 확인</h2>
+              <p>제휴 가능한 제휴처를 확인해요</p>
+            </div>
+            <div class="flow-arrow" aria-hidden="true">›</div>
+            <div class="flow-step">
+              <div class="flow-icon" aria-hidden="true">
+                <span class="flow-number">3</span>
+                <svg viewBox="0 0 48 48"><path d="M14 5h15l9 9v27a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"></path><path d="M29 5v10h9"></path><path d="M19 25h12M19 32h12"></path></svg>
+              </div>
+              <h2>포스팅 제목 추천</h2>
+              <p>상품에 맞는 제목을 추천받아요</p>
+            </div>
+          </section>
 
           <section class="ranking-area" aria-label="실시간 검색 순위">
             <div class="ranking-head">
