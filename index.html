@@ -1838,6 +1838,7 @@
     let currentKeyword = "";
     let currentData = null;
     let rollingIndex = 0;
+    let searchTransitionActive = false;
     const SEARCH_LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbzmfq0eKgrcVs1c0vyWkAnt42sZZSOJfY26W7EqArDPyFI7ndNl7HAwaYlRGUcQiCg1Dw/exec";
 
     function logSearch(keyword) {
@@ -1852,6 +1853,7 @@
     }
 
     function handleSearch(searchValue) {
+      if (searchTransitionActive) return;
       const input = document.getElementById("searchInput");
       const keyword = (searchValue || input.value).trim();
 
@@ -1867,6 +1869,7 @@
         return;
       }
 
+      searchTransitionActive = true;
       currentKeyword = keyword;
       currentData = matchedData;
       logSearch(keyword);
@@ -1892,9 +1895,6 @@
       if (exactItem) {
         return exactItem;
       }
-
-      // 등록된 검색어(띄어쓰기 제외)만 허용합니다.
-      // 일부 글자가 같다는 이유로 무관한 상품이 검색되는 것을 막습니다.
       return null;
     }
 
@@ -1923,9 +1923,7 @@
         .map((item) => String(item.keyword || "").trim())
         .filter(Boolean)
     )];
-    rollingIndex = rollingKeywords.length
-      ? Math.floor(Math.random() * rollingKeywords.length)
-      : 0;
+    rollingIndex = rollingKeywords.length ? Math.floor(Math.random() * rollingKeywords.length) : 0;
     if (rollingKeywords.length) {
       document.getElementById("rollingPlaceholder").textContent = rollingKeywords[rollingIndex];
     }
@@ -2076,9 +2074,7 @@
       const { productName, period, situation } = getTitleContext(keyword);
       const periodPhrase = period ? `${period} 사용` : "사용";
       const isFootwear = /신발|샌들|스니커즈|부츠|슬리퍼|구두|로퍼|힐/.test(`${productName} ${productGroup}`);
-      const experienceVerb = category === "식품"
-        ? "먹어본"
-        : (category === "패션" ? (isFootwear ? "신어본" : "입어본") : "써본");
+      const experienceVerb = category === "식품" ? "먹어본" : (category === "패션" ? (isFootwear ? "신어본" : "입어본") : "써본");
       const situationPhrase = situation ? `${situation}에서 ${experienceVerb}` : `일상에서 ${experienceVerb}`;
       const foodSituationPhrase = situation ? `${situation}에 먹어본` : "일상에서 먹어본";
       const travelIdea = getTravelTitleIdea(productName, category, productGroup);
@@ -2236,8 +2232,8 @@
       if (category === "식품" && /피자/.test(subject)) {
         return [
           { type: "후기형", title: `${productName} 먹어본 후기, 맛·토핑·조리 편의성 정리`, note: actualPatternNote },
-          { type: "추천형", title: `${productName} 추천, 다시 고를 때 본 맛·크기·가격 기준`, note: "먹은 인원과 가장 좋았던 토핑 조합을 함께 적어주세요." },
-          { type: "조리형", title: `${productName} 더 맛있게 먹는 조리법, 바삭하게 데운 방법`, note: "오븐·에어프라이어·전자레인지 중 실제 방법을 적어주세요." },
+          { type: "추천형", title: `${productName} 추천, 다시 고를 때 본 맛·크기·가격 기준`, note: "먹은 인원과 토핑 조합을 함께 적어주세요." },
+          { type: "조리형", title: `${productName} 더 맛있게 먹는 조리법, 바삭하게 데운 방법`, note: "실제로 사용한 조리 방법을 적어주세요." },
           { type: "상황형", title: `${foodSituationPhrase} ${productName}, 토핑과 맛의 조합 후기`, note: "주말·홈파티·야식처럼 실제 먹은 장면을 넣어주세요." },
           { type: "재구매형", title: `${productName} 재구매할까? 맛과 조리 편의성 기준으로 정리`, note: "좋았던 점과 아쉬운 점을 함께 적어 신뢰를 만들어요." },
           { type: "구매판단형", title: `${productName} 구매 전 확인한 크기·보관·가격 포인트`, note: "몇 명이 먹기 좋은지처럼 구매 직전 정보를 담아주세요." }
@@ -2247,7 +2243,7 @@
       if (category === "식품" && /홍삼|유산균|비타민|콜라겐|오메가|프로바이오틱스|루테인|철분|마그네슘|단백질|프로틴|건강즙/.test(subject)) {
         return [
           { type: "후기형", title: `${productName} 챙겨 먹어본 후기, 맛·섭취 편의성·아쉬운 점`, note: actualPatternNote },
-          { type: "선택형", title: `${productName} 고를 때 본 성분·용량·가격 기준`, note: "의학적 효능 대신 실제로 비교한 성분표와 섭취 편의성을 적어주세요." },
+          { type: "선택형", title: `${productName} 고를 때 본 성분·용량·가격 기준`, note: "의학적 효능 대신 실제 비교한 정보를 적어주세요." },
           { type: "상황형", title: `${foodSituationPhrase} ${productName}, 꾸준히 챙기기 편했을까`, note: "아침·운동 후처럼 실제로 챙긴 시간을 적어주세요." },
           { type: "재구매형", title: `${productName} 재구매할까? 맛과 섭취 편의성으로 정리`, note: "내가 계속 챙길 수 있었는지를 기준으로 적어주세요." },
           { type: "구매판단형", title: `${productName} 구매 전 확인한 원료·섭취량·보관 포인트`, note: "제품 표시사항과 실제 섭취 방법을 기준으로 정리해요." },
@@ -2330,6 +2326,7 @@
     }
 
     function goHome() {
+      searchTransitionActive = false;
       showPage("homePage");
       updateInputState();
       document.getElementById("searchInput").focus();
@@ -2407,46 +2404,26 @@
 
     function applyRankingMovement(liveRanking) {
       let previousRanking = [];
-
       try {
         previousRanking = JSON.parse(localStorage.getItem(RANKING_SNAPSHOT_KEY) || "[]");
-      } catch (_) {
-        previousRanking = [];
-      }
+      } catch (_) {}
 
-      const previousPositions = new Map(
-        previousRanking.map((keyword, index) => [keyword, index + 1])
-      );
+      const previousPositions = new Map(previousRanking.map((keyword, index) => [keyword, index + 1]));
       const hasPreviousSnapshot = previousRanking.length > 0;
-
       const rankedItems = liveRanking.slice(0, 10).map((item, index) => {
         const keyword = String(item.keyword || "").trim();
-        const currentRank = index + 1;
         const previousRank = previousPositions.get(keyword);
-
-        if (!hasPreviousSnapshot) {
-          return { ...item, trend: "same", change: 0 };
-        }
-
-        if (!previousRank) {
-          return { ...item, trend: "new", change: 0 };
-        }
-
-        const change = previousRank - currentRank;
+        if (!hasPreviousSnapshot) return { ...item, trend: "same", change: 0 };
+        if (!previousRank) return { ...item, trend: "new", change: 0 };
+        const change = previousRank - (index + 1);
         if (change > 0) return { ...item, trend: "up", change };
         if (change < 0) return { ...item, trend: "down", change: Math.abs(change) };
         return { ...item, trend: "same", change: 0 };
       });
 
       try {
-        localStorage.setItem(
-          RANKING_SNAPSHOT_KEY,
-          JSON.stringify(rankedItems.map((item) => String(item.keyword || "").trim()))
-        );
-      } catch (_) {
-        // 저장을 사용할 수 없는 환경에서도 현재 순위는 정상적으로 표시합니다.
-      }
-
+        localStorage.setItem(RANKING_SNAPSHOT_KEY, JSON.stringify(rankedItems.map((item) => item.keyword)));
+      } catch (_) {}
       return rankedItems;
     }
 
@@ -2468,6 +2445,7 @@
       window[callbackName] = (payload) => {
         const liveRanking = Array.isArray(payload?.ranking) ? payload.ranking : [];
         displayedRanking = mergeRanking(liveRanking);
+        nextRankingRefreshAt = Date.now() + RANKING_REFRESH_MS;
         renderRanking();
         cleanup();
       };
@@ -2573,7 +2551,7 @@
     bindTitleRefiner();
     bindTitleRefiner();
     updateInputState();
-    renderRanking();
+    document.getElementById("rankingUpdateTime").textContent = "순위를 불러오고 있어요";
     requestRankingFromSheet();
     updateRankingCountdown();
     setInterval(rotatePlaceholder, 3600);
