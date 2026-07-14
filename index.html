@@ -1851,14 +1851,15 @@
     let currentKeyword = "";
     let currentData = null;
     let rollingIndex = 0;
+    let searchTransitionActive = false;
     const SEARCH_LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbzmfq0eKgrcVs1c0vyWkAnt42sZZSOJfY26W7EqArDPyFI7ndNl7HAwaYlRGUcQiCg1Dw/exec";
 
-    function logSearch(keyword) {
+    function logSearch(keyword, eventId) {
       fetch(SEARCH_LOG_ENDPOINT, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ keyword })
+        body: JSON.stringify({ keyword, eventId })
       }).catch(() => {
         // 검색 결과 화면은 로그 전송 실패와 관계없이 정상 표시합니다.
       });
@@ -1880,9 +1881,12 @@
         return;
       }
 
+      if (searchTransitionActive) return;
+      searchTransitionActive = true;
+
       currentKeyword = keyword;
       currentData = matchedData;
-      logSearch(keyword);
+      logSearch(keyword, `search-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
       setRandomLoadingText();
       showPage("loadingPage");
@@ -2320,6 +2324,7 @@
     }
 
     function goHome() {
+      searchTransitionActive = false;
       showPage("homePage");
       updateInputState();
       document.getElementById("searchInput").focus();
