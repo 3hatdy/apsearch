@@ -1579,7 +1579,7 @@
             </div>
 
             <ol id="rankingList" class="ranking-list"></ol>
-            <p id="rankingUpdateTime" class="ranking-update-time" aria-live="polite">다음 업데이트까지 10:00</p>
+            <p id="rankingUpdateTime" class="ranking-update-time" aria-live="polite">다음 업데이트까지 03:00</p>
           </section>
         </div>
       </div>
@@ -2376,9 +2376,8 @@
         let change = 0;
 
         if (hasPreviousSnapshot) {
-          if (!oldRank) {
-            trend = "new";
-          } else if (oldRank > index + 1) {
+          if (!oldRank) trend = "new";
+          else if (oldRank > index + 1) {
             trend = "up";
             change = oldRank - (index + 1);
           } else if (oldRank < index + 1) {
@@ -2477,6 +2476,10 @@
 
       window[callbackName] = (payload) => {
         const liveRanking = Array.isArray(payload?.ranking) ? payload.ranking : [];
+        const nextUpdateAt = Date.parse(String(payload?.nextUpdateAt || ""));
+        if (!Number.isNaN(nextUpdateAt) && nextUpdateAt > Date.now()) {
+          nextRankingRefreshAt = nextUpdateAt;
+        }
         const mergedRanking = mergeRanking(liveRanking);
         if (mergedRanking.length) {
           displayedRanking = mergedRanking;
